@@ -1,0 +1,88 @@
+import random
+import math
+import timeit
+
+def sieve_of_eratosthenes(start, end):
+    primes = []
+    is_prime = [True] * (end + 1)
+    is_prime[0] = is_prime[1] = False
+
+    for i in range(2, int(end**0.5) + 1):
+        if is_prime[i]:
+            for j in range(i**2, end + 1, i):
+                is_prime[j] = False
+
+    for i in range(max(2, start), end + 1):
+        if is_prime[i]:
+            primes.append(i)
+
+    return primes
+
+def select_e(phi):
+    # Commonly used public exponent
+    e = 65537
+    # Check if e is coprime with phi
+    if math.gcd(e, phi) == 1:
+        return e
+    else:
+        # If not, choose a random prime less than phi
+        for _ in range(10):
+            e = random.randint(2, phi - 1)
+            if math.gcd(e, phi) == 1:
+                return e
+    # Fallback to linear search if prime not found (rare)
+    for e in range(2, phi):
+        if math.gcd(e, phi) == 1:
+            return e
+
+def encrypt(message, e, n):
+    return [pow(ord(char), e, n) for char in message]
+
+def decrypt(ciphertext, d, n):
+    return ''.join([chr(pow(char, d, n)) for char in ciphertext])
+
+start_range = 100000
+end_range = 1000000
+arr = sieve_of_eratosthenes(start_range, end_range)
+
+# Choose secure prime numbers
+p = random.choice(arr)
+q = random.choice(arr)
+while p == q:
+    q = random.choice(arr)
+
+n = p * q
+phi = (p - 1) * (q - 1)
+
+# Choose public exponent e
+e = select_e(phi)
+
+# Calculate the modular multiplicative inverse of e (private exponent d)
+d = pow(e, -1, phi)
+
+print(f'Public key: {e, n}')
+print(f'Private key: {d, n}')
+
+original_text = "hello this is gr"
+
+start_enc_time = timeit.default_timer()
+encrypted = encrypt(original_text, e, n)
+end_enc_time = timeit.default_timer()
+encryption_time = end_enc_time - start_enc_time
+
+print(f'Original message: {original_text}')
+print(f'Encrypted message: {encrypted}')
+print("Encryption time = ", encryption_time)
+
+start_dec_time = timeit.default_timer()
+decrypted_text = decrypt(encrypted, d, n)
+end_dec_time = timeit.default_timer()
+decryption_time = end_dec_time - start_dec_time
+
+print("Decrypted text is", decrypted_text)
+print("Decryption time = ", decryption_time)
+
+encryption_throughput = len(original_text) / encryption_time
+decryption_throughput = len(original_text) / decryption_time
+average_throughput = (encryption_throughput + decryption_throughput) / 2
+print("Average throughput = ", average_throughput)
